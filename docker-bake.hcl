@@ -44,8 +44,13 @@ variable "imageTypes" {
 
 // Extra extensions to install from PGDG. Each name is expanded to
 // `postgresql-<PG_MAJOR>-<name>` inside the Dockerfile.
+//
+// Note on what's already in the base:
+//   `pgaudit`, `pgvector`, and `pg-failover-slots` are baked into the
+//   upstream cloudnative-pg/postgresql:*-standard variant, which the
+//   PostGIS image (and therefore this image) inherits -- don't re-add.
 variable "extraExtensions" {
-  default = "pg-hint-plan wal2json"
+  default = "pg-hint-plan wal2json hypopg pg-qualstats repack"
 }
 
 variable "platforms" {

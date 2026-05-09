@@ -5,17 +5,29 @@ image with the extensions we use baked in. One image, one tag, no surprises
 when a new cluster needs `pg_hint_plan` or `wal2json` and the upstream image
 doesn't ship it.
 
-Currently bundled on top of the upstream PostGIS image:
-
-- [`pg_hint_plan`](https://github.com/ossc-db/pg_hint_plan) — query planner
-  hints injected via SQL comments.
-- [`wal2json`](https://github.com/eulerto/wal2json) — logical decoding output
-  plugin that emits WAL changes as JSON.
-
 Built on
 [`ghcr.io/cloudnative-pg/postgis`](https://github.com/cloudnative-pg/postgis-containers),
 which itself extends the official CNPG operand image. Extensions are pulled
 from the [PostgreSQL APT repository (PGDG)](https://wiki.postgresql.org/wiki/Apt).
+
+### Bundled on top of the PostGIS image
+
+| Extension | What it gives you |
+| --- | --- |
+| [`pg_hint_plan`](https://github.com/ossc-db/pg_hint_plan) | Query planner hints injected via SQL comments |
+| [`wal2json`](https://github.com/eulerto/wal2json) | Logical decoding output plugin that emits WAL changes as JSON |
+| [`hypopg`](https://github.com/HypoPG/hypopg) | Hypothetical indexes — test "would this index help?" without building it |
+| [`pg_qualstats`](https://github.com/powa-team/pg_qualstats) | Per-predicate statistics; pairs with `hypopg` for index suggestions |
+| [`pg_repack`](https://github.com/reorg/pg_repack) | Online table/index reorg without `VACUUM FULL`'s exclusive lock |
+
+### Already provided by the upstream `standard` variant
+
+These ship with `cloudnative-pg/postgresql:*-standard-*`, so you can
+`CREATE EXTENSION` them out of the box without anything from this repo:
+
+- [`pgaudit`](https://github.com/pgaudit/pgaudit) — structured audit logging
+- [`pgvector`](https://github.com/pgvector/pgvector) — vector similarity (AI embeddings)
+- [`pg_failover_slots`](https://github.com/EnterpriseDB/pg_failover_slots) — preserves logical slots across CNPG failovers
 
 ## Tags
 
