@@ -1,0 +1,120 @@
+// Bake recipe for building a CloudNativePG PostgreSQL + PostGIS image with
+// the extensions we use across our clusters baked in (pg_hint_plan, wal2json,
+// and any others added to `extraExtensions`).
+//
+// Build all variants for the current matrix:
+//
+//   docker buildx bake
+//
+// Build and push to a custom registry:
+//
+//   registry=ghcr.io/athalabs/cnpg-postgres-batteries-included \
+//     docker buildx bake --push
+//
+// Build a single variant only:
+//
+//   docker buildx bake batteries-18-3-standard-trixie
+
+variable "registry" {
+  default = "ghcr.io/athalabs/cnpg-postgres-batteries-included"
+}
+
+// Identifies the commit that produced the image. Set in CI to ${{ github.sha }}.
+variable "revision" {
+  default = ""
+}
+
+variable "pgMajors" {
+  default = ["18"]
+}
+
+// PostGIS major versions to ship per PG major. Match the upstream
+// `cloudnative-pg/postgis-containers` matrix.
+variable "postgisMajors" {
+  default = ["3"]
+}
+
+variable "distros" {
+  default = ["trixie"]
+}
+
+variable "imageTypes" {
+  default = ["standard"]
+}
+
+// Extra extensions to install from PGDG. Each name is expanded to
+// `postgresql-<PG_MAJOR>-<name>` inside the Dockerfile.
+variable "extraExtensions" {
+  default = "pg-hint-plan wal2json"
+}
+
+variable "platforms" {
+  default = ["linux/amd64", "linux/arm64"]
+}
+
+now     = timestamp()
+authors = "Atha Labs"
+url     = "https://github.com/athalabs/cnpg-postgres-batteries-included"
+
+target "default" {
+  matrix = {
+    pgMajor      = pgMajors
+    postgisMajor = postgisMajors
+    distro       = distros
+    tgt          = imageTypes
+  }
+
+  name       = "batteries-${pgMajor}-${postgisMajor}-${tgt}-${distro}"
+  dockerfile = "Dockerfile"
+  context    = "."
+  platforms  = platforms
+
+  args = {
+    BASE             = "ghcr.io/cloudnative-pg/postgis:${pgMajor}-${postgisMajor}-${tgt}-${distro}"
+    PG_MAJOR         = pgMajor
+    EXTRA_EXTENSIONS = extraExtensions
+  }
+
+  tags = [
+    // Stable, human-friendly tags
+    "${registry}:${pgMajor}-${postgisMajor}-${tgt}-${distro}",
+    "${registry}:${pgMajor}-${tgt}-${distro}",
+    // Immutable, timestamped tag for Flux ImagePolicy `numerical` ordering
+    "${registry}:${pgMajor}-${postgisMajor}-${tgt}-${distro}-${formatdate("YYYYMMDDhhmm", now)}",
+  ]
+
+  attest = [
+    "type=provenance,mode=max",
+    "type=sbom",
+  ]
+
+  annotations = [
+    "index,manifest:org.opencontainers.image.created=${now}",
+    "index,manifest:org.opencontainers.image.url=${url}",
+    "index,manifest:org.opencontainers.image.source=${url}",
+    "index,manifest:org.opencontainers.image.version=${pgMajor}-${postgisMajor}",
+    "index,manifest:org.opencontainers.image.revision=${revision}",
+    "index,manifest:org.opencontainers.image.vendor=${authors}",
+    "index,manifest:org.opencontainers.image.title=CNPG Postgres Batteries Included ${pgMajor}/${postgisMajor} (${tgt}, ${distro})",
+    "index,manifest:org.opencontainers.image.description=CloudNativePG PostgreSQL ${pgMajor} + PostGIS ${postgisMajor} with extensions: ${extraExtensions}",
+    "index,manifest:org.opencontainers.image.documentation=${url}",
+    "index,manifest:org.opencontainers.image.authors=${authors}",
+    "index,manifest:org.opencontainers.image.licenses=Apache-2.0",
+    "index,manifest:org.opencontainers.image.base.name=ghcr.io/cloudnative-pg/postgis:${pgMajor}-${postgisMajor}-${tgt}-${distro}",
+  ]
+
+  labels = {
+    "org.opencontainers.image.created"       = "${now}"
+    "org.opencontainers.image.url"           = "${url}"
+    "org.opencontainers.image.source"        = "${url}"
+    "org.opencontainers.image.version"       = "${pgMajor}-${postgisMajor}"
+    "org.opencontainers.image.revision"      = "${revision}"
+    "org.opencontainers.image.vendor"        = "${authors}"
+    "org.opencontainers.image.title"         = "CNPG Postgres Batteries Included ${pgMajor}/${postgisMajor} (${tgt}, ${distro})"
+    "org.opencontainers.image.description"   = "CloudNativePG PostgreSQL ${pgMajor} + PostGIS ${postgisMajor} with extensions: ${extraExtensions}"
+    "org.opencontainers.image.documentation" = "${url}"
+    "org.opencontainers.image.authors"       = "${authors}"
+    "org.opencontainers.image.licenses"      = "Apache-2.0"
+    "org.opencontainers.image.base.name"     = "ghcr.io/cloudnative-pg/postgis:${pgMajor}-${postgisMajor}-${tgt}-${distro}"
+  }
+}
