@@ -53,6 +53,16 @@ variable "extraExtensions" {
   default = "pg-hint-plan wal2json hypopg pg-qualstats repack"
 }
 
+// pg_jsonschema isn't in PGDG; it's built from source in the Rust builder
+// stage. Pin tag + matching pgrx version (must match Cargo.toml's pgrx dep
+// in pg_jsonschema at this ref).
+variable "pgJsonschemaRef" {
+  default = "v0.3.4"
+}
+variable "pgrxVersion" {
+  default = "0.16.1"
+}
+
 variable "platforms" {
   default = ["linux/amd64", "linux/arm64"]
 }
@@ -75,9 +85,11 @@ target "default" {
   platforms  = platforms
 
   args = {
-    BASE             = "ghcr.io/cloudnative-pg/postgis:${pgMajor}-${postgisMajor}-${tgt}-${distro}"
-    PG_MAJOR         = pgMajor
-    EXTRA_EXTENSIONS = extraExtensions
+    BASE               = "ghcr.io/cloudnative-pg/postgis:${pgMajor}-${postgisMajor}-${tgt}-${distro}"
+    PG_MAJOR           = pgMajor
+    EXTRA_EXTENSIONS   = extraExtensions
+    PG_JSONSCHEMA_REF  = pgJsonschemaRef
+    PGRX_VERSION       = pgrxVersion
   }
 
   tags = [

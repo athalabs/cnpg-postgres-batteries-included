@@ -12,13 +12,14 @@ from the [PostgreSQL APT repository (PGDG)](https://wiki.postgresql.org/wiki/Apt
 
 ### Bundled on top of the PostGIS image
 
-| Extension | What it gives you |
-| --- | --- |
-| [`pg_hint_plan`](https://github.com/ossc-db/pg_hint_plan) | Query planner hints injected via SQL comments |
-| [`wal2json`](https://github.com/eulerto/wal2json) | Logical decoding output plugin that emits WAL changes as JSON |
-| [`hypopg`](https://github.com/HypoPG/hypopg) | Hypothetical indexes — test "would this index help?" without building it |
-| [`pg_qualstats`](https://github.com/powa-team/pg_qualstats) | Per-predicate statistics; pairs with `hypopg` for index suggestions |
-| [`pg_repack`](https://github.com/reorg/pg_repack) | Online table/index reorg without `VACUUM FULL`'s exclusive lock |
+| Extension | Source | What it gives you |
+| --- | --- | --- |
+| [`pg_hint_plan`](https://github.com/ossc-db/pg_hint_plan) | PGDG | Query planner hints injected via SQL comments |
+| [`wal2json`](https://github.com/eulerto/wal2json) | PGDG | Logical decoding output plugin that emits WAL changes as JSON |
+| [`hypopg`](https://github.com/HypoPG/hypopg) | PGDG | Hypothetical indexes — test "would this index help?" without building it |
+| [`pg_qualstats`](https://github.com/powa-team/pg_qualstats) | PGDG | Per-predicate statistics; pairs with `hypopg` for index suggestions |
+| [`pg_repack`](https://github.com/reorg/pg_repack) | PGDG | Online table/index reorg without `VACUUM FULL`'s exclusive lock |
+| [`pg_jsonschema`](https://github.com/supabase/pg_jsonschema) | source (pgrx) | JSON Schema validation as a `CHECK` constraint |
 
 ### Already provided by the upstream `standard` variant
 
@@ -139,17 +140,26 @@ with the `ImageVolume` feature gate), and PostgreSQL 18+.
 
 ## Adding more extensions
 
-Append to `extraExtensions` in [`docker-bake.hcl`](docker-bake.hcl). The
-Dockerfile expands each name to `postgresql-<PG_MAJOR>-<name>` and
-`apt-get install`s it from PGDG, so the package must exist there for every
-PostgreSQL major in the matrix and every architecture you build for.
-
-Confirm a candidate is available before adding it:
+**If it's in PGDG:** append to `extraExtensions` in
+[`docker-bake.hcl`](docker-bake.hcl). The Dockerfile expands each name to
+`postgresql-<PG_MAJOR>-<name>` and `apt-get install`s it. The package must
+exist there for every PostgreSQL major in the matrix and every architecture
+you build for. Confirm before adding:
 
 ```bash
 curl -sL https://apt.postgresql.org/pub/repos/apt/dists/trixie-pgdg/main/binary-amd64/Packages.gz \
   | gunzip | grep "^Package: postgresql-18-<name>$"
 ```
+
+**If it's a Rust extension built with pgrx (like pg_jsonschema):** add another
+`FROM rust:1-trixie AS <name>-builder` stage modelled on the existing
+`pg-jsonschema-builder` stage, and `COPY --from=...` its `/usr/lib` and
+`/usr/share` artefacts into the final image. Pin both the upstream tag and
+`cargo-pgrx` to the version specified in the extension's `Cargo.toml`.
+
+**If it's a heavy non-PGDG extension** (e.g. plv8, which drags V8 in as a
+build dep), publish it as a separate ImageVolume image instead — see the
+sibling [`cnpg-plv8`](https://github.com/athalabs/cnpg-plv8) repo.
 
 ## Building locally
 
