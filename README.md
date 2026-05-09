@@ -97,6 +97,34 @@ spec:
 Pair with a Flux `ImageRepository` + `ImagePolicy` keyed on the timestamp
 suffix to get automatic updates.
 
+## Sibling: plv8 via ImageVolume
+
+[plv8](https://plv8.github.io/) isn't bundled here — it pulls V8 in as a
+build-time dependency, which would inflate every rebuild of this image by
+hours. It's published as a separate
+[`cnpg-plv8`](https://github.com/athalabs/cnpg-plv8) ImageVolume extension
+image and attached on demand:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: example-db
+spec:
+  imageName: ghcr.io/athalabs/cnpg-postgres-batteries-included:18-3-standard-trixie
+  instances: 3
+  storage:
+    size: 8Gi
+  postgresql:
+    extensions:
+      - name: plv8
+        image:
+          reference: ghcr.io/athalabs/cnpg-plv8:18-trixie
+```
+
+Requires CNPG with the `ImageVolume` feature, Kubernetes 1.35+ (or 1.33–1.34
+with the `ImageVolume` feature gate), and PostgreSQL 18+.
+
 ## Adding more extensions
 
 Append to `extraExtensions` in [`docker-bake.hcl`](docker-bake.hcl). The
