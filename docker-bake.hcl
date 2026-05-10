@@ -63,8 +63,12 @@ variable "pgrxVersion" {
   default = "0.16.1"
 }
 
+// amd64-only: pg_jsonschema is built from source via pgrx, and the Rust
+// compile under arm64 QEMU emulation pushes the build past 60min vs. ~10min
+// for amd64 alone. Re-add "linux/arm64" if/when our clusters need it (will
+// likely require a self-hosted arm64 runner to stay tolerable).
 variable "platforms" {
-  default = ["linux/amd64", "linux/arm64"]
+  default = ["linux/amd64"]
 }
 
 now     = timestamp()
